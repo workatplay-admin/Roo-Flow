@@ -1,0 +1,320 @@
+---
+adr_id: ADR-007
+title: Adopt Roo-Flow + Claude-Flow 2.0 + ruv-Swarm Multi-Agent Workflow
+date: 2025-07-09
+status: Proposed
+decision_makers:
+  - PM Team
+  - Tech Lead
+  - Dev Experience Lead
+technical_story: TECH-2401
+related_decisions:
+  - ADR-003 (IDE Extension Architecture)
+  - ADR-005 (Local LLM Integration Strategy)
+tags:
+  - multi-agent
+  - IDE
+  - developer-experience
+  - ai-assistance
+---
+
+# ADR-007: Adopt Roo-Flow + Claude-Flow 2.0 + ruv-Swarm Multi-Agent Workflow
+
+## Status
+
+**Proposed** - Awaiting stakeholder review and sign-off
+
+## Context and Problem Statement
+
+The development team requires an IDE-native interface capable of spawning, coordinating, and monitoring large multi-agent AI workflows for research, coding, quality assurance, and deployment tasks. Current single-agent solutions create bottlenecks and lack the coordination capabilities needed for complex development workflows.
+
+### System Requirements
+
+- **Familiar user experience**: VS Code integration to minimize onboarding friction
+- **Scalability**: Ability to scale beyond single-GPU computational limits
+- **Persistence**: Cross-session, long-running memory for agent state management
+- **Extensibility**: Integration via Model Context Protocol (MCP) for future tool additions
+- **Performance**: Sub-3-second response times for 95% of agent coordination requests
+- **Privacy**: Local execution with no cloud dependencies for sensitive code
+
+### Tool Definitions
+
+- **Roo-Flow**: Forked VS Code extension providing IDE-native multi-agent interface with MCP server integration capabilities
+- **Claude-Flow 2.0**: Orchestration runtime with 87 MCP tools and automatic topology management for agent coordination
+- **ruv-Swarm**: Distributed agent coordination system supporting 1M+ experts with persistent memory and off-GPU routing
+
+## Decision Drivers
+
+1. **Developer productivity**: Reduce context switching between tools and interfaces
+2. **System scalability**: Support for 50+ concurrent agent workflows
+3. **Integration complexity**: Minimize custom integration work through standardized protocols
+4. **Resource efficiency**: Optimize local computational resource usage
+5. **Maintenance burden**: Reduce long-term maintenance overhead
+6. **Learning curve**: Accelerate team adoption through familiar interfaces
+
+## Considered Options
+
+### Option A: Roo-Flow + Claude-Flow 2.0 + ruv-Swarm (Recommended)
+**Architecture**: Integrated multi-layer approach with MCP protocol standardization
+
+**Decision Logic**:
+```
+IF development team requires coordinated multi-agent workflows
+AND IDE integration is priority requirement
+AND local execution with privacy guarantees is mandatory
+AND system must scale beyond single-GPU limits
+THEN Roo-Flow + Claude-Flow 2.0 + ruv-Swarm provides optimal solution
+```
+
+### Option B: Vanilla Roo Code + Local Claude Agent
+**Architecture**: Single-agent approach with basic IDE integration
+
+**Rejection Rationale**: Lacks swarm orchestration capabilities and persistent memory features required for complex workflows.
+
+### Option C: CLI-Only Claude-Flow
+**Architecture**: Command-line interface without IDE integration
+
+**Rejection Rationale**: Poor developer experience for non-terminal users and lacks VS Code integration requirements.
+
+### Option D: Custom Electron Application
+**Architecture**: Purpose-built desktop application
+
+**Rejection Rationale**: High development and maintenance costs, unfamiliar interface increases adoption friction.
+
+## Decision Outcome
+
+**Chosen Option**: Option A - Roo-Flow + Claude-Flow 2.0 + ruv-Swarm
+
+### Y-Statement
+
+In the context of IDE-native development workflows requiring coordinated AI assistance,
+facing the need for scalable multi-agent orchestration with privacy guarantees,
+we decided for Roo-Flow + Claude-Flow 2.0 + ruv-Swarm integration
+and neglected single-agent solutions and cloud-based coordination platforms,
+to achieve real-time local agent orchestration with persistent memory,
+accepting increased local resource usage and initial configuration complexity,
+because developer productivity gains and privacy guarantees outweigh infrastructure costs.
+
+## Implementation Plan
+
+### Phase 1: Foundation Setup (Weeks 1-2)
+```yaml
+tasks:
+  - action: "Fork Roo Code to create Roo-Flow"
+    owner: "Tech Lead"
+    success_criteria: "VS Code extension loads without errors"
+    validation: "Execute test multi-agent workflow"
+    
+  - action: "Register MCP servers in settings.json"
+    dependencies: ["Roo-Flow fork complete"]
+    configuration:
+      servers:
+        - name: "claude-flow"
+          command: "claude-flow"
+          args: ["--mcp-mode"]
+          port: 8080
+        - name: "ruv-swarm"
+          command: "ruv-swarm"
+          args: ["--mcp-server"]
+          port: 8081
+    success_criteria: "Both MCP servers respond to health checks"
+```
+
+### Phase 2: UI Integration (Weeks 3-4)
+```yaml
+tasks:
+  - action: "Implement sidebar controls"
+    features:
+      - "Start Swarm" button
+      - "Spawn N Agents" dropdown (1-20 agents)
+      - "Show Logs" panel
+      - "Swarm Status" metrics display
+    success_criteria: "All UI controls functional and responsive"
+    
+  - action: "Create slash-command interface"
+    examples:
+      - "/spawn 5 research-agents" → "claude-flow swarm spawn 5 --mode research"
+      - "/spawn 3 QA-agents" → "claude-flow swarm spawn 3 --mode QA"
+    success_criteria: "Slash commands execute successfully with <3s response"
+```
+
+### Phase 3: Memory & Persistence (Weeks 5-6)
+```yaml
+tasks:
+  - action: "Enable ruv-Swarm persistent memory"
+    configuration:
+      storage_backend: "local_sqlite"
+      memory_retention: "30_days"
+      cross_session_state: "enabled"
+    success_criteria: "Agent memory persists across IDE restarts"
+    
+  - action: "Implement auto-topology selection"
+    topologies: ["Ring", "Mesh", "Star"]
+    selection_logic: "Based on agent count and task complexity"
+    success_criteria: "Optimal topology selected for 90% of workflows"
+```
+
+## Consequences
+
+### Positive Outcomes
+- **Developer experience**: Familiar VS Code interface reduces learning curve to <1 week
+- **Capability expansion**: Claude-Flow's 87 MCP tools provide comprehensive automation
+- **Scalability**: ruv-Swarm removes GPU bottlenecks and supports 1M+ expert routing
+- **Privacy preservation**: Local execution maintains code confidentiality
+- **Cross-session continuity**: Persistent memory enables complex, multi-day workflows
+
+### Negative Outcomes
+- **Resource consumption**: Increased local RAM usage (estimated 4-8GB for typical workflows)
+- **Configuration complexity**: Two-layer MCP architecture requires careful namespace management
+- **Maintenance overhead**: Must track upstream Roo Code releases to prevent drift
+- **Learning curve**: Team requires training on multi-agent orchestration concepts
+- **Error surface**: Additional failure points through MCP server coordination
+
+## Risks and Mitigations
+
+| Risk ID | Risk Description | Probability | Impact | Score | Mitigation Strategy | Owner |
+|---------|------------------|-------------|--------|-------|-------------------|--------|
+| R001 | MCP naming conflicts between servers | Medium | High | 9 | Enforce naming convention: `mcp__server-name__tool-name` | Dev Team |
+| R002 | Agent coordination latency >3s | High | Medium | 9 | Implement local caching + fallback topology | Platform Team |
+| R003 | Accidental file overwrites from hooks | Medium | High | 9 | Pre-flight backup + confirmation prompts | Safety Lead |
+| R004 | Memory usage exceeds available RAM | Low | High | 6 | Auto-throttling based on system metrics | Dev Team |
+| R005 | Port conflicts during development | High | Low | 3 | Dynamic port allocation with conflict detection | Dev Team |
+
+### Rollback Procedure
+```yaml
+triggers:
+  - "Agent response time consistently >5 seconds"
+  - "Error rate >1% for agent coordination"
+  - "System memory usage >90% for >5 minutes"
+  
+rollback_steps:
+  - action: "Disable MCP servers in VS Code settings"
+    duration: "30 seconds"
+  - action: "Revert to vanilla Roo Code extension"
+    duration: "2 minutes"
+  - action: "Restart VS Code instances"
+    duration: "1 minute"
+  
+total_rollback_time: "3.5 minutes"
+```
+
+## Success Metrics
+
+### Performance Targets
+- **Response latency**: <2 seconds for 95% of agent queries
+- **Concurrent capacity**: Support 50 concurrent developer sessions
+- **Memory efficiency**: <8GB RAM usage for typical 5-agent workflows
+- **Uptime**: 99.5% availability during business hours
+
+### Productivity Metrics
+- **Code review time**: 40% reduction within 3 months
+- **Bug detection rate**: 25% improvement in pre-commit QA
+- **Developer satisfaction**: >4.0/5.0 rating in quarterly surveys
+- **Adoption rate**: 80% team adoption within 6 weeks
+
+## Behavioral Specifications
+
+```gherkin
+Feature: Multi-Agent IDE Integration
+  Scenario: Developer initiates code refactoring workflow
+    Given Roo-Flow extension is active in VS Code
+    And Claude-Flow 2.0 orchestration server is running
+    And ruv-Swarm coordination layer is initialized
+    When developer executes "/spawn 3 refactor-agents"
+    Then agents coordinate through ruv-Swarm mesh topology
+    And consolidated refactoring suggestions appear within 3 seconds
+    And agent memory persists for cross-session continuity
+
+  Scenario: System resource management under load
+    Given 15 active agent workflows are running
+    When system memory usage exceeds 85%
+    Then ruv-Swarm automatically throttles new agent spawning
+    And existing workflows continue without interruption
+    And developer receives resource constraint notification
+```
+
+## Architecture Diagram
+
+```yaml
+components:
+  vs_code:
+    extension: "Roo-Flow"
+    responsibilities: ["UI controls", "slash commands", "status display"]
+    interfaces:
+      - type: "MCP Client"
+        connections: ["claude-flow", "ruv-swarm"]
+  
+  orchestration_layer:
+    service: "Claude-Flow 2.0"
+    port: 8080
+    responsibilities: ["agent lifecycle", "tool coordination", "topology management"]
+    tools_count: 87
+    protocols: ["MCP", "JSON-RPC"]
+  
+  coordination_layer:
+    service: "ruv-Swarm"
+    port: 8081
+    responsibilities: ["distributed routing", "persistent memory", "resource management"]
+    capacity: "1M+ experts"
+    storage: "local_sqlite"
+  
+data_flow:
+  - "Developer → VS Code → Roo-Flow → MCP → Claude-Flow/ruv-Swarm"
+  - "Agent Results → ruv-Swarm → Claude-Flow → MCP → Roo-Flow → VS Code"
+```
+
+## Dependencies
+
+```yaml
+runtime_dependencies:
+  roo_flow:
+    version: ">=1.0.0-fork"
+    installation: "VSIX package from internal repository"
+    verification: "Extension appears in VS Code extensions list"
+  
+  claude_flow:
+    version: ">=2.0.0"
+    installation: "pip install claude-flow==2.0.0"
+    verification: "claude-flow --version && claude-flow test-mcp"
+    configuration:
+      mcp_mode: true
+      port: 8080
+      tools_enabled: "all"
+  
+  ruv_swarm:
+    version: ">=1.5.0"
+    installation: "pip install ruv-swarm==1.5.0"
+    verification: "ruv-swarm status && ruv-swarm test-coordination"
+    configuration:
+      memory_backend: "sqlite"
+      coordination_port: 8081
+      max_experts: 1000000
+
+development_dependencies:
+  - "VS Code >=1.80.0"
+  - "Node.js >=18.0.0"
+  - "Python >=3.9.0"
+  - "Available RAM >=16GB recommended"
+```
+
+## Future Considerations
+
+- **QuDag routing integration**: Evaluate next-generation routing algorithms when available
+- **Task complexity heuristics**: Implement AI-driven agent pool auto-sizing
+- **Performance analytics**: Add detailed metrics collection for optimization
+- **Multi-workspace support**: Extend coordination across multiple VS Code instances
+- **Cloud hybrid mode**: Optional cloud coordination for resource-intensive workflows
+
+## References
+
+- [MCP Protocol Specification](https://modelcontextprotocol.io/)
+- [Roo Code Extension Architecture](internal://docs/roo-code-arch)
+- [Claude-Flow 2.0 Documentation](internal://tools/claude-flow)
+- [ruv-Swarm Coordination Guide](internal://tools/ruv-swarm)
+
+---
+
+**Next Steps**: 
+1. Stakeholder review and approval (Target: 2025-07-12)
+2. Technical feasibility validation (Target: 2025-07-15)
+3. Sprint planning for Phase 1 implementation (Target: 2025-07-16)
